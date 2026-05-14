@@ -34,6 +34,7 @@ jobs:
           test -f docs/brand-bible.md
           test -f supabase/migrations/0001_init.sql
           test -f supabase/migrations/0002_audit_fixes.sql
+          test -f supabase/migrations/0003_codex_fixes.sql
           echo "Phase 0 invariants OK."
 
   hard-rule-grep:
@@ -44,8 +45,11 @@ jobs:
       - name: No on-chain code at MVP
         run: |
           set -euo pipefail
-          # Charter hard rule 7: no on-chain anything.
-          if git grep -nIE 'web3|ethers\.js|@web3-react|@solana|polygon-sdk|alchemy-sdk' -- ':!docs/' ':!CLAUDE.md' ':!.github/' ; then
+          # Charter hard rule 7: no on-chain anything. Patterns intentionally
+          # cover both the explicit allow-list from CLAUDE.md and the broader
+          # ecosystem (wagmi/viem/hardhat/wallet-connect/metamask) so a
+          # contributor can't slip past with a popular import we forgot.
+          if git grep -nIE '\b(web3|ethers|@web3-react|@solana|polygon-sdk|alchemy-sdk|wagmi|viem|hardhat|wallet-?connect|metamask)\b' -- ':!docs/' ':!CLAUDE.md' ':!.github/' ':!pnpm-lock.yaml' ; then
             echo "::error::On-chain/Web3 code is forbidden at MVP. Remove before merge."
             exit 1
           fi
@@ -53,7 +57,9 @@ jobs:
       - name: No retired_at = NULL UPDATEs in migrations
         run: |
           set -euo pipefail
-          # Charter hard rule 3: retired_at is permanent.
+          # Charter hard rule 3: retired_at is permanent. When supabase/functions/
+          # gets code in Phase 2+, broaden this grep to also include that path so
+          # Edge Functions can't unset retired_at either.
           if git grep -nIE 'set retired_at\s*=\s*null' -- 'supabase/migrations/' ; then
             echo "::error::A migration attempts to unset retired_at. This is forbidden."
             exit 1

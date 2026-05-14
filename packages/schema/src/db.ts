@@ -1,6 +1,7 @@
-// READ-shape mirrors of Supabase tables (see supabase/migrations/0001_init.sql
-// and 0002_audit_fixes.sql). Timestamps are ISO strings; bytea is base64.
-// These are intentionally read-only types — the Edge Functions own writes.
+// READ-shape mirrors of Supabase tables (see supabase/migrations/0001_init.sql,
+// 0002_audit_fixes.sql, and 0003_codex_fixes.sql). Timestamps are ISO strings;
+// bytea is base64. These are intentionally read-only types — the Edge
+// Functions own writes.
 
 import type {
   BoxKind,
@@ -15,13 +16,7 @@ import type {
 export type IsoTimestamp = string;
 export type Uuid = string;
 export type Base64Bytes = string;
-export type JsonValue =
-  | string
-  | number
-  | boolean
-  | null
-  | { [k: string]: JsonValue }
-  | JsonValue[];
+export type JsonValue = string | number | boolean | null | { [k: string]: JsonValue } | JsonValue[];
 
 export interface UserRow {
   id: Uuid;
@@ -106,6 +101,15 @@ export interface TradeLedgerRow {
   resolved_at: IsoTimestamp | null;
   abort_reason: string | null;
   metadata: JsonValue;
+}
+
+// Internal projection from 0003_codex_fixes.sql — one row per (trade_id,
+// slot) for pending trades. UNIQUE(inventory_id) is the actual cross-column
+// uniqueness invariant; rows are written only by the sync trigger.
+export interface TradeLedgerPendingItemsRow {
+  trade_id: number;
+  inventory_id: Uuid;
+  slot: 'a' | 'b';
 }
 
 export interface LootBoxRow {

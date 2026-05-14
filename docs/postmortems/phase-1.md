@@ -1,0 +1,32 @@
+# Phase 1 postmortem — monorepo scaffolding + audit + Codex fixes
+
+**Shipped as:** PR #2 (squash-merged to `main` as `aba2dad`). Includes Phase 0 foundation (carried), 7 audit fixes (`0002_audit_fixes.sql`), 3 Codex review fixes (`0003_codex_fixes.sql`), and the Phase 1 monorepo scaffold (Next.js 15 + React 19 + Three.js + Colyseus + pnpm workspace + shared schema package + CI hardening).
+
+## What worked
+
+- **The Architect → Implementer → Reviewer chain ran clean on Phase 1.** All three agents pinned to Opus 4.7 per the project rule, each producing a written artifact (design doc, code + report, PASS/FAIL verdict). The Reviewer agent caught 2 real defects on the realtime app that the Implementer missed (asymmetric `ClosetRoom` visitor cleanup; `apps/realtime/package.json` `main`/`start` pointing at a build target that didn't exist). Both fixed before merge.
+- **The Quality bar held up under pressure.** When the Reviewer returned PASS WITH NOTES on three hardening nits (search_path on non-SECURITY-DEFINER triggers, half-reveal direction check on box_opens, invariant assertion on pre-reveal), I (Chief) initially tried to skip one as "unreachable per project style rule." The user pushed back, the rule was codified in CLAUDE.md ("No PASS-WITH-NOTES merges. Defense-in-depth is welcome on load-bearing surface."), and the nit got fixed. The codified rule paid back immediately when Codex (external automated reviewer) caught 3 more findings the in-house Reviewer missed.
+- **Defense-in-depth caught a real bug.** Codex's P1 finding on the cross-column pending-trade dupe (same inventory in `inventory_a` of one row AND `inventory_b` of another) was a real dupe-bug surface that two passes of internal review didn't catch. The fix (`trade_ledger_pending_items` projection with UNIQUE on `inventory_id`) replaces a trigger-only guard with a UNIQUE constraint, so a service-role bug can't silence the invariant.
+- **CI hard-rule grep guards earned their keep.** Phase 1.5 (auth) cycled through several agent passes; on each push the on-chain / retire-unset / coin-leg greps ran and stayed clean. The guards mean a contributor (human or agent) cannot accidentally introduce these without the build failing.
+- **The schema package's enum-parity test paid off.** When 0002 added `box_open_commits` table and 0003 added `trade_ledger_pending_items`, the test caught the surface as new — though the deep-dive audit at end of Phase 1.5 did catch that the `db.ts` mirror was missing the `trade_ledger_pending_items` row type (separate from enums, separate gap).
+
+## What didn't
+
+- **CI failed for ~30 minutes before root cause was found.** Three jobs (lint, typecheck, vitest) failed in CI but all passed locally. Root cause: `actions/setup-node@v4` with `node-version: 20.18` was incompatible with something in the dependency chain that worked on local Node 22. Diagnosis required pushing a separate diagnostic commit (`09b34a8`) before the fix (`6750f99` cleanup of the diagnostics). Lesson: when CI fails and locally green, the first thing to check is environment version mismatch.
+- **The in-house Reviewer missed all 3 Codex findings.** Cross-column pending-trade uniqueness, public closet view privacy bypass, pending-row mutability — each one was visible in the schema with careful reading. The Reviewer agent's prompt was comprehensive but the failure mode was the same as Phase 0: not enough independent eyes on the same load-bearing surface. We now have a "Reviewer + external automated reviewer (Codex / CodeQL)" gating model emerging — both ran on PR #5 and CodeQL caught a `Math.random()` in the e2e spec that none of the internal agents flagged.
+- **The first PR (PR #2) carried 19 commits before merge.** Each one was technically green at commit time, but the cumulative diff was huge and a Reviewer running on the final state had a 5,000-line surface. Smaller PRs would have been easier to review and easier to bisect when CI broke. The Implementer's 5-commit plan for Phase 1.5 was better, but still landed as one PR.
+- **The harness restricts pushes to one branch.** "Phase 1+ work: feature branches off `claude/skater-closet-game-ZATwX`" in CLAUDE.md is aspirational — the harness blocks pushes to any other branch. This is why PR #5 had to be rebased and force-pushed to clear merge conflicts when the squash-merged Phase 1 commit history collided with the branch's pre-squash history. The CLAUDE.md rule has been left as aspirational pending infra changes; the operational reality is documented in PR descriptions.
+- **No postmortem written at the time.** Same drift as Phase 0. This file written retroactively after the deep-dive audit flagged the gap.
+
+## What we'd do differently
+
+1. **Pin CI Node version to match the project's contributor reality at day zero.** If contributors run Node 22+, pin Node 22 in CI from the first commit. Don't default to "latest LTS" without checking.
+2. **Require Codex/CodeQL on the first PR.** Both ran on PR #5 by GitHub default once the repo had GHAS enabled; Phase 0's PR #2 ran them but the in-house Reviewer was the only gate. Treating external automated reviewers as first-class gates from day zero would have caught the 3 SQL findings before they shipped to `main` (we got lucky that `main` had no production users yet).
+3. **Smaller PRs.** A 19-commit, 5,000-line PR is too big to meaningfully review. Phase 1.5's 6-commit, 909-line shape is closer to right. The matrix-driven dispatch (Architect → Implementer → Reviewer per scope) helps but doesn't force smaller PRs — that's a chief-engineer call per phase.
+4. **`db.ts` mirror update should be part of every schema migration's checklist.** 0003 added a table; the schema package wasn't updated until the post-Phase-1.5 audit. Add it to the PR template's migration section.
+
+## Carry-forward into Phase 1.5+
+
+- The deep-dive audit at end of Phase 1.5 produced 8 findings (1 HIGH on search_path hardening, 6 MEDIUM on tracking/CI/docs, 1 LOW carry-forward batch) — all addressed in the follow-up commit set including `0004_searchpath_hardening.sql`.
+- 55 Dependabot alerts on `main` (4 critical, 14 high, 28 moderate, 9 low) need triage. Some are dev-only transitive deps; some may be real. Phase 1.6 task.
+- Playwright e2e exists but is CI-gated (skipped without staging Supabase secrets). Phase 1.6 should provision a staging Supabase project and wire the secrets so the auth golden-path runs on every PR.

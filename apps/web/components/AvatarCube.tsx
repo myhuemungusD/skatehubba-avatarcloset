@@ -1,6 +1,7 @@
 'use client';
 
-// Phase 1 placeholder; real avatar mesh in Phase 1.5.
+// Placeholder cube. Real avatar mesh + customization lands when the avatar
+// phase ships (see docs/architecture.md "What we skip at MVP vs Phase 2").
 
 import { useFrame } from '@react-three/fiber';
 import { useRef } from 'react';
