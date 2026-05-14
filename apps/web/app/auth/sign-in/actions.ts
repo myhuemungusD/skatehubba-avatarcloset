@@ -4,6 +4,16 @@ import { redirect } from 'next/navigation';
 import { createSupabaseServerClient } from '../../../lib/supabase/server';
 import { signInInput } from '../../../lib/auth/schemas';
 
+// Routes a freshly-signed-in user is allowed to return to. Mirrors the
+// middleware redirect target. Hard-coded set (no regex) — same shape as the
+// /auth/callback NEXT_ALLOWLIST. Anything else falls back to /closet/me.
+export const SIGN_IN_NEXT_ALLOWLIST: ReadonlySet<string> = new Set(['/closet/me', '/account']);
+
+export function resolveSignInNext(next: string | undefined | null): string {
+  if (typeof next === 'string' && SIGN_IN_NEXT_ALLOWLIST.has(next)) return next;
+  return '/closet/me';
+}
+
 export interface SignInActionState {
   error?: {
     formErrors: string[];
@@ -16,6 +26,7 @@ export async function signInAction(
   formData: FormData,
 ): Promise<SignInActionState> {
   const raw = Object.fromEntries(formData.entries());
+  const next = typeof raw.next === 'string' ? raw.next : undefined;
   const parsed = signInInput.safeParse(raw);
   if (!parsed.success) {
     const flat = parsed.error.flatten();
@@ -35,5 +46,5 @@ export async function signInAction(
     };
   }
 
-  redirect('/closet/me');
+  redirect(resolveSignInNext(next));
 }
