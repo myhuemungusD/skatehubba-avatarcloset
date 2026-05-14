@@ -5,10 +5,6 @@ interface ClosetRoomCreateOptions {
   closetOwner?: string;
 }
 
-interface ClosetRoomJoinOptions {
-  userId?: string;
-}
-
 export class ClosetRoom extends Room<ClosetRoomState> {
   override onCreate(options: ClosetRoomCreateOptions = {}): void {
     const state = new ClosetRoomState();
@@ -16,9 +12,8 @@ export class ClosetRoom extends Room<ClosetRoomState> {
     this.setState(state);
   }
 
-  override onJoin(client: Client, options: ClosetRoomJoinOptions = {}): void {
-    const visitorId = options.userId ?? client.sessionId;
-    this.state.visitors.push(visitorId);
+  override onJoin(client: Client): void {
+    this.state.visitors.push(client.sessionId);
   }
 
   override onLeave(client: Client): void {
