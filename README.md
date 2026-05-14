@@ -6,8 +6,9 @@ Forward-integrates into the broader SkateHubba product.
 
 ## Status
 
-Phase 1 — MVP scaffolding. Next.js web app, Colyseus realtime server,
-shared schema package, CI typecheck + lint + unit tests.
+Phase 1.5 — Auth + identity wiring on top of the Phase 1 scaffold. Next.js
+web app with Supabase email-password auth, Colyseus realtime server, shared
+schema package, CI typecheck + lint + unit tests + charter grep guards.
 
 Working branch: `claude/skater-closet-game-ZATwX`.
 
