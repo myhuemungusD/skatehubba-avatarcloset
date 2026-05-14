@@ -89,10 +89,11 @@
      │
      ▼
 2. Server generates server_seed (32 bytes random)
-   Server commits: SHA256(server_seed) → sent to client BEFORE outcome
+   Server INSERTs `box_open_commits` row with `server_seed_hash`;
+   returns `commit_id` to client.
      │
      ▼
-3. Client posts client_seed (32 bytes) + nonce
+3. Client posts `commit_id` + `client_seed` + `nonce`.
      │
      ▼
 4. Server computes:
@@ -108,7 +109,7 @@
      INSERT inventory (owner, template, serial, unique_token=SHA256(...))
      │
      ▼
-6. Server reveals server_seed; writes full transcript to audit_log
+6. Server UPDATEs `box_opens` row setting `server_seed` and `revealed_at`.
      │
      ▼
 7. Anyone can verify:
@@ -152,6 +153,7 @@ A Colyseus room **per closet**. Room state schema:
 - Owner online → mutations broadcast in <100ms (equip change, decoration move).
 - Owner offline → snapshot served from Postgres, room runs in read-only "ghost" mode.
 - Async fallback: `GET /api/closets/:username/snapshot.json` for SEO + share previews (CDN-cached).
+- Visitor reads `public_closet_inventory` view (template/edition/serial only); `unique_token` and acquisition timestamps remain owner-only.
 
 ## Database schema overview
 
@@ -168,6 +170,7 @@ Tables (Phase 0–2 scope):
 - `closets` — closet layout per user
 - `loot_boxes` — box definitions + drop tables
 - `box_opens` — every box opening, with commit-reveal transcript
+- `box_open_commits` — pre-input commit row, referenced by `box_opens.commit_id`.
 - `audit_log` — generic append-only system events
 
 ## What we skip at MVP vs Phase 2

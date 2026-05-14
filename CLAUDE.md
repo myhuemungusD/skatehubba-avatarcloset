@@ -12,6 +12,10 @@ If you're an agent reading this, read [`docs/CHARTER.md`](docs/CHARTER.md) and [
 6. **No real-brand replicas at MVP.** See `docs/brand-bible.md`. Fictional brands only. If you're tempted to add real logos/colorways, stop and escalate.
 7. **No on-chain anything at MVP.** Not Polygon, not Ethereum, not "just in case". Phase 3+ conversation only.
 
+## Agent model
+
+All delegated agents (`Agent` tool calls) on this project run on **Opus 4.7**. Pass `model: "opus"` on every `Agent` invocation. No Sonnet, no Haiku for substantive work — the trade engine, the schema, and the charter-touching surface are too high-leverage. If a future Claude generation is available and stronger than Opus 4.7, this rule is the place to update.
+
 ## Branch + PR rules
 
 - Phase 0 work: directly on `claude/skater-closet-game-ZATwX`.

@@ -1,6 +1,26 @@
 # The Team
 
-This is a small, agent-led project. The human owner directs intent; an agent crew executes. The Team Lead (Claude, the agent you're talking to) coordinates the crew, makes most decisions, and only escalates the irreversible or expensive ones.
+This is a small, agent-led project. The human owner directs intent; an agent crew executes. The **Chief Engineer** (Claude, the main session you're talking to) is the team lead — designs the work, dispatches the crew, owns code quality, only escalates the irreversible or expensive.
+
+## Chain of command
+
+```
+        Human owner (intent + final approval)
+                       │
+                       ▼
+        Chief Engineer (main session)         ← that's me
+                       │
+        ┌──────────────┼──────────────┬──────────────┐
+        ▼              ▼              ▼              ▼
+    Architect    Implementer       Reviewer         QA
+    (Plan)    (general-purpose) (general-purpose) (general-purpose)
+                       │
+                       ▼
+                  Specialists
+            (Frontend / Backend / Research / Live-ops)
+```
+
+The Chief Engineer never has a peer review their own work — every PR-shaped change goes through the Reviewer agent. Every schema/trade/money-touching change goes Architect → Implementer → Reviewer.
 
 ## Roster
 
@@ -15,6 +35,33 @@ This is a small, agent-led project. The human owner directs intent; an agent cre
 | **Code Reviewer** | ad-hoc Task agent | PR review, security review for auth/trade/payment paths, dupe-bug audits | Every PR touching `inventory` or `trade_ledger` — mandatory |
 | **QA / Anti-fraud** | `general-purpose` | Dupe-bug stress tests, trade-race harness, scam-pattern sim | Before each phase-exit and on every inventory/trade PR |
 | **Live-ops / Content** | `general-purpose` | Drop calendar, item-edition rows, drop-rate CSVs, season planning | Phase 2 onward |
+
+## Model
+
+Every delegated agent runs on **Opus 4.7** (`model: "opus"` on the `Agent` call). Sonnet and Haiku are not used on this project — too much of the surface is high-leverage. Codified in `CLAUDE.md`.
+
+## Task → agent assignment matrix
+
+When the Chief Engineer dispatches work, the agent type is determined by the task, not by convenience. Use this matrix; do not improvise.
+
+| Task type | Agent | Spawn condition | Reviewer required? |
+|---|---|---|---|
+| Schema change (any new migration) | Architect → Implementer → Reviewer | Always | Yes — mandatory |
+| Trade engine / inventory mutation logic | Architect → Implementer → Reviewer + QA dupe-harness | Always | Yes — mandatory; QA blocks merge |
+| Wallet / coin_ledger / box_opens / item_editions touch | Architect → Implementer → Reviewer | Always | Yes — mandatory |
+| New Edge Function (Supabase) | Architect → Implementer → Reviewer | Always | Yes |
+| Frontend feature (Three.js, closet UI, avatar) | Frontend Specialist → Reviewer | Always for feature work | Yes if touches inventory display |
+| Backend service work (Colyseus rooms, Postgres helpers) | Backend Specialist → Reviewer | Always | Yes |
+| Refactor / rename / dead-code cleanup | General Implementer → Reviewer | Multi-file or >50 LOC | Yes if touches money-shaped tables |
+| Single-file bug fix, no money surface | Chief Engineer (direct) | <30 LOC, no schema/RLS impact | No — chief verifies via Read |
+| Docs-only edit | Chief Engineer (direct) | Always | No |
+| Research / comparable-product recon | Explore (or general-purpose if multi-step) | On demand | No |
+| CI / tooling config | General Implementer | Always | Yes if affects merge gating |
+| Drop-table or economy CSV edit | Live-ops → Reviewer (parity check vs `/odds`) | Phase 2+ | Yes — CI parity check is the gate |
+
+**The chief's discretion rule.** For tasks not on the matrix, the chief picks. When in doubt: if it touches `inventory`, `trade_ledger`, `wallets`, `coin_ledger`, `item_editions`, `box_opens`, or `box_open_commits` — use the full Architect → Implementer → Reviewer chain. Otherwise, scale to the task size.
+
+**The "I'll just do it" rule.** The Chief Engineer may execute directly only when: (a) the task is on the matrix as "Chief Engineer (direct)", or (b) it is patching a defect that a prior Reviewer agent has already identified by file:line with a specific fix. Both cases bypass the Architect step *only* because the design or defect-spec already exists. They never bypass the eventual Reviewer pass for the broader change set.
 
 ## Operating rules (non-negotiable)
 
