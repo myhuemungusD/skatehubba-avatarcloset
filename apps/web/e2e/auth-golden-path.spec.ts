@@ -1,3 +1,5 @@
+import { randomBytes } from 'node:crypto';
+
 import { expect, test } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
 
@@ -14,7 +16,9 @@ test.describe('auth golden path', () => {
       auth: { persistSession: false },
     });
 
-    const suffix = Math.random().toString(36).slice(2, 10);
+    // randomBytes (not Math.random) because this suffix lands in a security
+    // context — passwords + auth-user emails. CodeQL flags Math.random here.
+    const suffix = randomBytes(6).toString('hex');
     const email = `e2e_${suffix}@skatehubba.test`;
     const password = `kickflip_${suffix}_pw`;
     const username = `e2e_${suffix}`;
