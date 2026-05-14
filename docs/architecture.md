@@ -174,6 +174,71 @@ Tables (Phase 0–2 scope):
 - `box_open_commits` — pre-input commit row, referenced by `box_opens.commit_id`.
 - `audit_log` — generic append-only system events
 
+## Auth flow (Phase 1.5)
+
+Email + password only at MVP. Supabase Auth is the system of record; the
+`users` row is provisioned by the `handle_new_user` trigger from
+`auth.users` (see `0002_audit_fixes.sql`).
+
+```
+ ┌────────────┐  POST /auth/sign-up    ┌──────────────────┐
+ │  Browser   │ ─────────────────────▶ │ Server Action    │
+ │ SignUpForm │   email, pwd, handle   │ signUpAction()   │
+ └────────────┘                        └────────┬─────────┘
+        ▲                                       │
+        │  redirect /auth/check-email           │ supabase.auth.signUp
+        │                                       ▼
+        │                              ┌──────────────────┐
+        │                              │ Supabase Auth    │
+        │                              │  inserts         │
+        │                              │  auth.users row  │
+        │                              └────────┬─────────┘
+        │                                       │ AFTER INSERT trigger
+        │                                       ▼
+        │                              ┌──────────────────┐
+        │                              │ handle_new_user  │
+        │                              │  users + wallet  │
+        │                              │  + closet + 500HC│
+        │                              └──────────────────┘
+        │
+        │  email confirm link
+        ▼
+ ┌────────────┐  GET /auth/callback?code  ┌──────────────────┐
+ │  Browser   │ ─────────────────────────▶│ Route Handler    │
+ └────────────┘                           │ exchangeCodeFor- │
+        ▲                                 │ Session          │
+        │  redirect /closet/me            └────────┬─────────┘
+        │                                          │
+        │   ┌──────────────────────────────────────┘
+        │   │
+        │   ▼
+        │ ┌──────────────────┐
+        │ │ /closet/me       │   getCurrentUser() → users.username
+        │ │  server comp.    │   redirect /closet/<handle>
+        │ └──────────────────┘
+        ▼
+ ┌────────────┐
+ │ /closet/   │
+ │  <handle>  │
+ └────────────┘
+```
+
+Sign-in is the same shape minus the email confirm step: server action calls
+`signInWithPassword`, redirect to `/closet/me`. Sign-out is a single server
+action wired to a small client `<UserMenu>` form. `middleware.ts` refreshes
+the session on every request, gates `/closet/me` for anon viewers, and
+redirects signed-in viewers away from `/auth/sign-in` and `/auth/sign-up`.
+
+Server components only ever call `supabase.auth.getUser()`, never
+`getSession()` — only the former verifies the JWT against `auth.users`.
+
+Username case: the sign-up form normalizes user input to lowercase before
+submit; the DB regex still accepts mixed case (`^[a-zA-Z0-9_]{3,24}$`) so
+existing rows from earlier seed data validate. On collision,
+`handle_new_user` retries once with a numeric suffix before raising; the UI
+just renders `@<actualHandle>` without an explanation. (If real users hit
+this surface, Phase 1.6 adds a banner.)
+
 ## What we skip at MVP vs Phase 2
 
 | Feature | MVP (Phase 1) | Phase 2 | Later |

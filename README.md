@@ -24,12 +24,39 @@ pnpm -F @skatehubba/web dev      # Next.js on http://localhost:3000
 pnpm -F @skatehubba/realtime dev # Colyseus on REALTIME_PORT (default 2567)
 ```
 
-End-to-end (Playwright) runs only `@skatehubba/web`:
+### Supabase project setup
+
+1. Create a Supabase project. Copy the **Project URL** into
+   `NEXT_PUBLIC_SUPABASE_URL` and the **anon public** key into
+   `NEXT_PUBLIC_SUPABASE_ANON_KEY` in `.env.local`. Keep the **service role**
+   key out of the web app — it is reserved for Edge Functions and e2e admin
+   helpers.
+2. Run the SQL migrations in `supabase/migrations/` against your project, in
+   numeric order. Use the Supabase SQL editor or `supabase db push`.
+3. In **Authentication → URL Configuration**, set the Site URL to your dev
+   host (e.g. `http://localhost:3000`) and add `${SITE_URL}/auth/callback`
+   as a redirect URL. Email confirmation is **on** by default and the
+   sign-up flow assumes it; users land on `/auth/check-email`, click the
+   confirm link, and the `/auth/callback` route exchanges the code and
+   redirects them to `/closet/me`.
+4. New signups are provisioned via the `handle_new_user` SECURITY DEFINER
+   trigger (migration `0002_audit_fixes.sql`). Each new auth user gets a
+   `users` row, a `wallets` row, a `closets` row, and a 500 HC signup-bonus
+   `coin_ledger` entry.
+
+### End-to-end tests
+
+Playwright runs against `@skatehubba/web`:
 
 ```sh
 pnpm -F @skatehubba/web exec playwright install chromium
 pnpm test:e2e
 ```
+
+The auth golden-path spec (`apps/web/e2e/auth-golden-path.spec.ts`) is
+skipped unless `SUPABASE_TEST_URL` and `SUPABASE_TEST_SERVICE_ROLE_KEY` are
+set; it admin-creates a confirmed user against a staging Supabase project
+and exercises the sign-in flow end-to-end.
 
 ## Read first
 
