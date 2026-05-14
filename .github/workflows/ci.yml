@@ -35,6 +35,9 @@ jobs:
           test -f supabase/migrations/0001_init.sql
           test -f supabase/migrations/0002_audit_fixes.sql
           test -f supabase/migrations/0003_codex_fixes.sql
+          test -f supabase/migrations/0004_searchpath_hardening.sql
+          test -f supabase/migrations/0005_constraint_hardening.sql
+          test -f supabase/migrations/0006_handle_new_user_lowercase.sql
           echo "Phase 0 invariants OK."
 
   hard-rule-grep:
