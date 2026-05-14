@@ -65,6 +65,12 @@ export default [
       ...nextPlugin.configs['core-web-vitals'].rules,
       'react/react-in-jsx-scope': 'off',
       'react/prop-types': 'off',
+      // React Three Fiber renders three.js objects as JSX primitives; their
+      // props (args, position, intensity, etc.) are not recognized by the
+      // generic react plugin. R3F's own types validate them.
+      'react/no-unknown-property': 'off',
+      // The App Router lives under apps/web/app; there is no /pages dir.
+      '@next/next/no-html-link-for-pages': 'off',
     },
   },
   {

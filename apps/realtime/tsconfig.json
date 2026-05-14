@@ -1,17 +1,15 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
     "target": "ES2022",
     "outDir": "./dist",
-    "rootDir": "./src",
     "declaration": true,
     "experimentalDecorators": true,
     "useDefineForClassFields": false,
     "types": ["node"]
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["dist", "node_modules"],
-  "references": [{ "path": "../../packages/schema" }]
+  "exclude": ["dist", "node_modules"]
 }

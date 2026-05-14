@@ -1,6 +1,12 @@
 import { cookies } from 'next/headers';
-import { createServerClient } from '@supabase/ssr';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { publicEnv } from '../env';
+
+interface CookieSetEntry {
+  name: string;
+  value: string;
+  options?: CookieOptions;
+}
 
 // Server-side Supabase client builder. Not called at scaffold time; it exists
 // so Phase 1.5 auth + closet-snapshot routes can pick it up unchanged.
@@ -14,7 +20,7 @@ export async function createSupabaseServerClient() {
         getAll() {
           return cookieStore.getAll();
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: CookieSetEntry[]) {
           for (const { name, value, options } of cookiesToSet) {
             cookieStore.set(name, value, options);
           }

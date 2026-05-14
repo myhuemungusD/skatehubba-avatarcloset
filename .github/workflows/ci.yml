@@ -136,7 +136,7 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
       - name: Test
-        run: pnpm -r test --run --reporter=verbose
+        run: pnpm -r test -- --run --reporter=verbose
 
   # ---------------------------------------------------------------------------
   # Phase 2+ jobs — wire these up when the corresponding code lands.

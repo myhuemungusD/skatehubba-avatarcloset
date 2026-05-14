@@ -1,13 +1,13 @@
 import { Server } from 'colyseus';
 import { WebSocketTransport } from '@colyseus/ws-transport';
 import { createServer } from 'node:http';
-import express, { type Request, type Response } from 'express';
+import express, { type Express, type Request, type Response } from 'express';
 import { healthResponse } from '@skatehubba/schema';
 
 import { env } from './lib/env.js';
 import { ClosetRoom } from './rooms/ClosetRoom.js';
 
-export function createApp() {
+export function createApp(): Express {
   const app = express();
   app.get('/health', (_req: Request, res: Response) => {
     res.json(healthResponse.parse({ ok: true, service: 'realtime', version: '0.1.0' }));

@@ -1,8 +1,5 @@
 {
   "files": [],
-  "references": [
-    { "path": "./packages/schema" },
-    { "path": "./apps/web" },
-    { "path": "./apps/realtime" }
-  ]
+  "include": [],
+  "references": []
 }

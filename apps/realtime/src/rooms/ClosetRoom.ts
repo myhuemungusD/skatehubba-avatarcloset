@@ -1,4 +1,4 @@
-import { Client, Room } from 'colyseus';
+import { Room, type Client } from 'colyseus';
 import { ClosetRoomState } from '../schema/ClosetRoomState.js';
 
 interface ClosetRoomCreateOptions {
