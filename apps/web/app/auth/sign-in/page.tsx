@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getCurrentUser } from '../../../lib/auth/server';
 import SignInForm from './SignInForm';
-import { resolveSignInNext } from './actions';
+import { resolveSignInNext } from './next';
 
 export const dynamic = 'force-dynamic';
 

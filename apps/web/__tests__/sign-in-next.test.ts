@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveSignInNext, SIGN_IN_NEXT_ALLOWLIST } from '../app/auth/sign-in/actions';
+import { resolveSignInNext, SIGN_IN_NEXT_ALLOWLIST } from '../app/auth/sign-in/next';
 
 describe('resolveSignInNext (open-redirect guard)', () => {
   it('accepts every path in the allowlist verbatim', () => {
