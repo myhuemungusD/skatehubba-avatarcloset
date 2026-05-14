@@ -117,6 +117,10 @@
      SHA256(server_seed || client_seed || nonce) % 10_000 == outcome_index ?
 ```
 
+`server_seed`, `server_seed_hash`, and `client_seed` are 32-byte values
+enforced at the DB layer via CHECK constraints (see
+`0005_constraint_hardening.sql`); `server_seed` is nullable until reveal.
+
 ## Serial number uniqueness
 
 Two-belt approach (DB constraint + cryptographic token):
@@ -232,12 +236,15 @@ redirects signed-in viewers away from `/auth/sign-in` and `/auth/sign-up`.
 Server components only ever call `supabase.auth.getUser()`, never
 `getSession()` — only the former verifies the JWT against `auth.users`.
 
-Username case: the sign-up form normalizes user input to lowercase before
-submit; the DB regex still accepts mixed case (`^[a-zA-Z0-9_]{3,24}$`) so
-existing rows from earlier seed data validate. On collision,
-`handle_new_user` retries once with a numeric suffix before raising; the UI
-just renders `@<actualHandle>` without an explanation. (If real users hit
-this surface, Phase 1.6 adds a banner.)
+Username case: `users.username` is `citext` with a lowercase-only regex
+CHECK (`^[a-z0-9_]{3,24}$`) and a belt-and-suspenders
+`username::text = lower(username::text)` CHECK (see
+`0005_constraint_hardening.sql`). The sign-up form normalizes user input
+to lowercase before submit; the DB rejects anything that isn't already
+lowercase, and citext makes uniqueness casefold-aware so `Foo` and `foo`
+collide. On collision, `handle_new_user` retries once with a numeric
+suffix before raising; the UI just renders `@<actualHandle>` without an
+explanation.
 
 ## What we skip at MVP vs Phase 2
 

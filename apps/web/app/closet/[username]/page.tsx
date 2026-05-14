@@ -19,6 +19,8 @@ export default async function ClosetPage({ params }: ClosetPageProps) {
   const { username } = await params;
   const supabase = await createSupabaseServerClient();
 
+  // users.username is citext (see 0005_constraint_hardening.sql), so this
+  // lookup is case-insensitive at the DB layer regardless of the URL casing.
   const { data: profile } = await supabase
     .from('users')
     .select('id, username, display_name')

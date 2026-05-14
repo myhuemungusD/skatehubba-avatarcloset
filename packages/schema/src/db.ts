@@ -1,7 +1,8 @@
 // READ-shape mirrors of Supabase tables (see supabase/migrations/0001_init.sql,
-// 0002_audit_fixes.sql, and 0003_codex_fixes.sql). Timestamps are ISO strings;
-// bytea is base64. These are intentionally read-only types — the Edge
-// Functions own writes.
+// 0002_audit_fixes.sql, 0003_codex_fixes.sql, 0004_searchpath_hardening.sql,
+// and 0005_constraint_hardening.sql). Timestamps are ISO strings; bytea is
+// base64. These are intentionally read-only types — the Edge Functions own
+// writes.
 
 import type {
   BoxKind,
@@ -20,11 +21,13 @@ export type JsonValue = string | number | boolean | null | { [k: string]: JsonVa
 
 export interface UserRow {
   id: Uuid;
+  // stored case-insensitive (citext); always lowercase on insert
   username: string;
   display_name: string;
   avatar_config: JsonValue;
   created_at: IsoTimestamp;
   updated_at: IsoTimestamp;
+  username_changed_at: IsoTimestamp | null;
 }
 
 export interface WalletRow {

@@ -1,9 +1,12 @@
 import { z } from 'zod';
 
-// Username regex is lowercase-only here. The form normalizes user input to
-// lowercase before submit, and the DB column allows mixed case
-// (^[a-zA-Z0-9_]{3,24}$) — so any legacy mixed-case rows still validate
-// server-side. New signups go through this schema and land lowercased.
+// Username regex is lowercase-only here. The DB column is citext with a
+// matching ^[a-z0-9_]{3,24}$ CHECK and a belt-and-suspenders
+// `username::text = lower(username::text)` CHECK (see
+// 0005_constraint_hardening.sql), so both client validation and the
+// database agree: only lowercase letters, digits, and underscores; 3–24
+// chars; case-insensitive uniqueness. The form normalizes to lowercase
+// before submit so users typing "FooBar" land as "foobar".
 export const usernameRegex = /^[a-z0-9_]{3,24}$/;
 
 export const signUpInput = z

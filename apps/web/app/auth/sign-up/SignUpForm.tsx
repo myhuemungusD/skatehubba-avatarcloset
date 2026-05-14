@@ -42,7 +42,7 @@ export default function SignUpForm() {
           required
           minLength={3}
           maxLength={24}
-          pattern="[A-Za-z0-9_]{3,24}"
+          pattern="[a-z0-9_]{3,24}"
           autoComplete="username"
           className="rounded border px-3 py-2"
         />
