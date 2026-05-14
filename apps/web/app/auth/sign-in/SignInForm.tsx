@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useActionState } from 'react';
 import { signInAction, type SignInActionState } from './actions';
 
@@ -47,6 +48,12 @@ export default function SignInForm({ initialError }: SignInFormProps) {
         {fieldErrors.password?.length ? (
           <span className="text-xs text-red-600">{fieldErrors.password[0]}</span>
         ) : null}
+        <Link
+          href="/auth/forgot-password"
+          className="self-start text-xs underline underline-offset-2 opacity-80 hover:opacity-100"
+        >
+          Forgot password?
+        </Link>
       </label>
 
       {formErrors.length ? (

@@ -45,6 +45,17 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  if (pathname === '/account' && !user) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/auth/sign-in';
+    url.searchParams.set('next', '/account');
+    return NextResponse.redirect(url);
+  }
+
+  // /auth/reset-password is intentionally exempt from the "authed → /closet/me"
+  // bounce below: the reset flow lands here WITH a fresh session (callback
+  // exchanged the code) and the page itself requires that session to render
+  // the password form. Bouncing the user away here breaks the reset flow.
   if (user && (pathname === '/auth/sign-in' || pathname === '/auth/sign-up')) {
     const url = request.nextUrl.clone();
     url.pathname = '/closet/me';

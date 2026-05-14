@@ -31,3 +31,29 @@ export const signInInput = z.object({
 });
 
 export type SignInInput = z.infer<typeof signInInput>;
+
+export const forgotPasswordInput = z.object({
+  email: z.string().email(),
+});
+
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordInput>;
+
+export const resetPasswordInput = z
+  .object({
+    password: z.string().min(8),
+    confirmPassword: z.string().min(8),
+  })
+  .refine((v) => v.password === v.confirmPassword, {
+    path: ['confirmPassword'],
+    message: 'passwords do not match',
+  });
+
+export type ResetPasswordInput = z.infer<typeof resetPasswordInput>;
+
+export const changeUsernameInput = z.object({
+  username: z.string().regex(usernameRegex, {
+    message: 'username must be 3–24 chars: a–z, 0–9, underscore',
+  }),
+});
+
+export type ChangeUsernameInput = z.infer<typeof changeUsernameInput>;
