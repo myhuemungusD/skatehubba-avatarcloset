@@ -93,10 +93,21 @@ jobs:
           version: 9.12.3
       - uses: actions/setup-node@v4
         with:
-          node-version: 20.18
+          node-version: 22
           cache: pnpm
+      - name: Versions
+        run: |
+          node --version
+          pnpm --version
+          which pnpm
       - name: Install
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --reporter=default
+      - name: Workspace symlinks
+        run: |
+          ls -la apps/web/node_modules/@skatehubba/ || true
+          ls -la apps/realtime/node_modules/@skatehubba/ || true
+          ls -la node_modules/@skatehubba/ || true
+          cat apps/web/node_modules/@skatehubba/schema/package.json 2>/dev/null | head -20 || true
       - name: Lint
         run: pnpm lint
 
@@ -112,10 +123,21 @@ jobs:
           version: 9.12.3
       - uses: actions/setup-node@v4
         with:
-          node-version: 20.18
+          node-version: 22
           cache: pnpm
+      - name: Versions
+        run: |
+          node --version
+          pnpm --version
+          which pnpm
       - name: Install
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --reporter=default
+      - name: Workspace symlinks
+        run: |
+          ls -la apps/web/node_modules/@skatehubba/ || true
+          ls -la apps/realtime/node_modules/@skatehubba/ || true
+          ls -la node_modules/@skatehubba/ || true
+          cat apps/web/node_modules/@skatehubba/schema/package.json 2>/dev/null | head -20 || true
       - name: Typecheck
         run: pnpm -r typecheck
 
@@ -131,10 +153,21 @@ jobs:
           version: 9.12.3
       - uses: actions/setup-node@v4
         with:
-          node-version: 20.18
+          node-version: 22
           cache: pnpm
+      - name: Versions
+        run: |
+          node --version
+          pnpm --version
+          which pnpm
       - name: Install
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --reporter=default
+      - name: Workspace symlinks
+        run: |
+          ls -la apps/web/node_modules/@skatehubba/ || true
+          ls -la apps/realtime/node_modules/@skatehubba/ || true
+          ls -la node_modules/@skatehubba/ || true
+          cat apps/web/node_modules/@skatehubba/schema/package.json 2>/dev/null | head -20 || true
       - name: Test
         run: pnpm -r test -- --run --reporter=verbose
 
