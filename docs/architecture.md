@@ -153,7 +153,7 @@ A Colyseus room **per closet**. Room state schema:
 - Owner online → mutations broadcast in <100ms (equip change, decoration move).
 - Owner offline → snapshot served from Postgres, room runs in read-only "ghost" mode.
 - Async fallback: `GET /api/closets/:username/snapshot.json` for SEO + share previews (CDN-cached).
-- Visitor reads `public_closet_inventory` view (template/edition/serial only); `unique_token` and acquisition timestamps remain owner-only.
+- Visitor reads `public_closet_inventory` view (template/edition/serial only, filtered by `closets.is_public`); `unique_token` and acquisition timestamps remain owner-only.
 
 ## Database schema overview
 
@@ -167,6 +167,7 @@ Tables (Phase 0–2 scope):
 - `item_editions` — limited-edition runs of a template ("Polestar Deck S1 Camo, run of 500")
 - `inventory` — owned items (one row per physical copy of an item)
 - `trade_ledger` — append-only trade history (every trade attempt logged)
+- `trade_ledger_pending_items` — internal projection enforcing single-pending-trade-per-inventory invariant; written only by trigger, never by application code.
 - `closets` — closet layout per user
 - `loot_boxes` — box definitions + drop tables
 - `box_opens` — every box opening, with commit-reveal transcript
