@@ -40,6 +40,22 @@ Items that genuinely cannot be done without something the human owner has to pro
 
 Items that depend on code that hasn't been written yet. Each one names the upstream gate.
 
+### `DEP-NANOID-COLYSEUS` — `nanoid@2.1.11` transitive via Colyseus 0.16
+
+- **What:** Moderate-severity advisory (`GHSA-mwcw-c2x4-8c55`) — predictable results in `nanoid` generation when given non-integer length values. Patched in `nanoid >= 3.3.8`.
+- **Path:** `apps/realtime > @colyseus/ws-transport@0.16.5 > @colyseus/core@0.16.24 > nanoid@2.1.11`.
+- **Upstream gate:** Colyseus 0.16 line is pinned to nanoid 2.x because nanoid 3+ is ESM-only and breaks Colyseus's CommonJS `import nanoid from 'nanoid'` (default-import) pattern. Bumping Colyseus to 0.17 (which natively supports newer nanoid) is the proper fix. Colyseus 0.17 has API surface changes for the Room lifecycle that need their own design pass.
+- **Real-world exposure:** nanoid generates Colyseus room IDs and client session IDs. The advisory requires the caller to pass a non-integer length value to nanoid for the predictability to bite. Colyseus passes a constant integer length, so the exploit path is NOT triggered in our usage. Compensating control: defense-in-depth in CLAUDE.md "Two-reviewer rule" plus per-room observation when closet visits ship in Phase 2.
+- **Where it lands:** Colyseus 0.17 bump in its own PR with Architect → Implementer → 2x Reviewer chain (touches realtime presence which is gateway to closet visits which will eventually display inventory).
+
+### `DEP-ELLIPTIC-COLYSEUS-AUTH` — `elliptic@6.6.1` transitive via Colyseus auth
+
+- **What:** Low-severity advisory (`GHSA-848j-6mx2-7j84`) — Elliptic uses a cryptographic primitive with a risky implementation. Listed `patched_versions: <0.0.0`, meaning no upstream fix exists.
+- **Path:** `apps/realtime > colyseus@0.16.5 > @colyseus/auth@0.16.6 > grant@5.4.24 > jwk-to-pem@2.0.7 > elliptic@6.6.1`.
+- **Upstream gate:** Elliptic upstream has not released a patch for this advisory; the recommendation is to migrate off the affected primitive. `jwk-to-pem` uses elliptic in its JWK→PEM conversion path. `@colyseus/auth` is the Colyseus built-in auth module — **we do not use it** (Phase 1.5 ships Supabase Auth instead). The affected code path is never invoked in our deployment.
+- **Real-world exposure:** Zero in current code. The risk surface opens only if a future PR wires Colyseus's built-in auth, which would be a charter-level decision (we'd be moving identity off Supabase) requiring owner approval.
+- **Where it lands:** Tracked indefinitely. The right resolution is "remove `@colyseus/auth` from the dependency tree." Colyseus 0.17+ may modularize this; verify when the bump lands.
+
 ### `DUPE-HARNESS` — QA dupe-bug stress harness
 
 - **What:** Concurrent trade fuzzer that hammers the trade Edge Function under SERIALIZABLE isolation and asserts no row ever splits, no row ever appears in two trades, no row ever loses ownership, ledger sums always reconcile.
