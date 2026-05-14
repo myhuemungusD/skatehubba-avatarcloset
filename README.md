@@ -6,9 +6,30 @@ Forward-integrates into the broader SkateHubba product.
 
 ## Status
 
-Phase 0 — foundation. Greenfield. No app code yet.
+Phase 1 — MVP scaffolding. Next.js web app, Colyseus realtime server,
+shared schema package, CI typecheck + lint + unit tests.
 
 Working branch: `claude/skater-closet-game-ZATwX`.
+
+## Getting started
+
+Requirements: Node 20.11+, pnpm 9.12.3 (pinned via `packageManager`).
+
+```sh
+pnpm install
+cp .env.example .env.local      # fill in NEXT_PUBLIC_SUPABASE_* + service role
+pnpm -r typecheck                # static typecheck across the workspace
+pnpm -r test --run               # vitest across packages
+pnpm -F @skatehubba/web dev      # Next.js on http://localhost:3000
+pnpm -F @skatehubba/realtime dev # Colyseus on REALTIME_PORT (default 2567)
+```
+
+End-to-end (Playwright) runs only `@skatehubba/web`:
+
+```sh
+pnpm -F @skatehubba/web exec playwright install chromium
+pnpm test:e2e
+```
 
 ## Read first
 
@@ -26,15 +47,16 @@ Next.js + Three.js (WebGPU) on the front. Colyseus for realtime closet rooms. Su
 
 ```
 apps/
-  web/         Next.js app (avatar, closet, shop UI, trade UI)
-  realtime/    Colyseus rooms (closet visits, presence, trade handshake)
+  web/         Next.js 15 app (App Router; landing, closet, sign-in stub, /api/health)
+  realtime/    Colyseus rooms (closet visits, presence; trade handshake later)
 packages/
-  schema/      Shared TypeScript types + zod schemas
+  schema/      Shared TypeScript types + zod schemas (consumed via tsconfig paths)
 supabase/
   migrations/  SQL migrations (state of record)
-  functions/   Edge Functions (open_box, propose_trade, mint_shop_item)
+  functions/   Edge Functions (open_box, propose_trade, mint_shop_item — Phase 2+)
 docs/          Charter, architecture, economy, brand bible, team rules
 .claude/       Hooks + project rules for the agent crew
+.github/       PR templates, CODEOWNERS, CI workflow
 ```
 
 ## Roadmap

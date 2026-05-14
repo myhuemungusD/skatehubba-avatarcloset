@@ -81,18 +81,67 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  lint:
+    name: ESLint (flat config)
+    runs-on: ubuntu-latest
+    env:
+      HUSKY: 0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Lint
+        run: pnpm lint
+
+  typecheck:
+    name: TypeScript typecheck
+    runs-on: ubuntu-latest
+    env:
+      HUSKY: 0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck
+        run: pnpm -r typecheck
+
+  unit-tests:
+    name: Vitest (unit)
+    runs-on: ubuntu-latest
+    env:
+      HUSKY: 0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Test
+        run: pnpm -r test -- --run --reporter=verbose
+
   # ---------------------------------------------------------------------------
-  # Phase 1+ jobs — wire these up when the corresponding code lands.
+  # Phase 2+ jobs — wire these up when the corresponding code lands.
   # Keeping them as commented stubs documents intent and prevents drift.
   # ---------------------------------------------------------------------------
-  #
-  # typecheck:
-  #   when: apps/web/package.json exists
-  #   pnpm install --frozen-lockfile && pnpm -F web typecheck
-  #
-  # unit-tests:
-  #   when: vitest configs exist
-  #   pnpm -r test --run
   #
   # drop-rate-parity:
   #   when: docs/economy.md table + supabase/seed/loot_box_drop_tables.csv exist

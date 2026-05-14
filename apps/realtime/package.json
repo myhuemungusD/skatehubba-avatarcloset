@@ -1,0 +1,30 @@
+{
+  "name": "@skatehubba/realtime",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SkateHubba: Avatar Closet — Colyseus realtime rooms.",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "@colyseus/schema": "^3.0.0",
+    "@colyseus/ws-transport": "^0.16.0",
+    "@skatehubba/schema": "workspace:*",
+    "@supabase/supabase-js": "^2.45.0",
+    "colyseus": "^0.16.0",
+    "express": "^4.21.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@colyseus/monitor": "^0.16.0",
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.17.6",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.4"
+  }
+}
