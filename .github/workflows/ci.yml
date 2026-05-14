@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - "claude/**"
+  push:
+    branches:
+      - main
+      - "claude/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  charter-presence:
+    name: Charter + schema presence
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Required project files exist
+        run: |
+          set -euo pipefail
+          test -f CLAUDE.md
+          test -f docs/CHARTER.md
+          test -f docs/team.md
+          test -f docs/architecture.md
+          test -f docs/economy.md
+          test -f docs/brand-bible.md
+          test -f supabase/migrations/0001_init.sql
+          test -f supabase/migrations/0002_audit_fixes.sql
+          echo "Phase 0 invariants OK."
+
+  hard-rule-grep:
+    name: Hard-rule grep guards
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: No on-chain code at MVP
+        run: |
+          set -euo pipefail
+          # Charter hard rule 7: no on-chain anything.
+          if git grep -nIE 'web3|ethers\.js|@web3-react|@solana|polygon-sdk|alchemy-sdk' -- ':!docs/' ':!CLAUDE.md' ':!.github/' ; then
+            echo "::error::On-chain/Web3 code is forbidden at MVP. Remove before merge."
+            exit 1
+          fi
+          echo "No on-chain code detected."
+      - name: No retired_at = NULL UPDATEs in migrations
+        run: |
+          set -euo pipefail
+          # Charter hard rule 3: retired_at is permanent.
+          if git grep -nIE 'set retired_at\s*=\s*null' -- 'supabase/migrations/' ; then
+            echo "::error::A migration attempts to unset retired_at. This is forbidden."
+            exit 1
+          fi
+          echo "No retired_at unset attempts."
+      - name: No coin-leg in trade migrations
+        run: |
+          set -euo pipefail
+          # Charter hard rule 4: trades are item-for-item only.
+          # Crude check: any new column on trade_ledger referencing coin should be reviewed.
+          if git grep -nIE 'trade_ledger.*(hubba_coin|hc_amount|coin_amount)' -- 'supabase/migrations/' ; then
+            echo "::error::trade_ledger appears to gain a coin leg. This is a charter violation."
+            exit 1
+          fi
+          echo "No coin-leg detected on trade_ledger."
+
+  secret-scan:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ---------------------------------------------------------------------------
+  # Phase 1+ jobs — wire these up when the corresponding code lands.
+  # Keeping them as commented stubs documents intent and prevents drift.
+  # ---------------------------------------------------------------------------
+  #
+  # typecheck:
+  #   when: apps/web/package.json exists
+  #   pnpm install --frozen-lockfile && pnpm -F web typecheck
+  #
+  # unit-tests:
+  #   when: vitest configs exist
+  #   pnpm -r test --run
+  #
+  # drop-rate-parity:
+  #   when: docs/economy.md table + supabase/seed/loot_box_drop_tables.csv exist
+  #   tools/check-odds-parity.ts — fails if published rates drift from DB seed
+  #
+  # dupe-bug-harness:
+  #   when: trade Edge Function exists
+  #   tools/dupe-harness.ts — concurrent trade fuzzer, must pass for any PR
+  #   touching inventory or trade_ledger (CLAUDE.md hard rule).

@@ -1,0 +1,19 @@
+# Default owner — every PR auto-requests review here.
+* @myhuemungusD
+
+# Money-shaped surface: changes to these paths are highest-risk and always
+# require an extra-careful review pass + (where the path is on the dupe-bug
+# list in CLAUDE.md) a QA dupe-harness run before merge.
+/supabase/migrations/   @myhuemungusD
+/supabase/functions/    @myhuemungusD
+
+# Charter and team rules are governance — never modify without owner approval.
+/docs/CHARTER.md        @myhuemungusD
+/docs/team.md           @myhuemungusD
+/CLAUDE.md              @myhuemungusD
+
+# Brand bible — legal exposure if real-brand replicas slip in.
+/docs/brand-bible.md    @myhuemungusD
+
+# Economy parameters — affects revenue, regulatory posture, and player trust.
+/docs/economy.md        @myhuemungusD

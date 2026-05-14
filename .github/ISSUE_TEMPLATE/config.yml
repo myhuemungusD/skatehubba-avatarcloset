@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Read the Charter
+    url: https://github.com/myhuemungusD/skatehubba-avatarcloset/blob/main/docs/CHARTER.md
+    about: Vision, pillars, non-goals. Read before proposing a feature.
+  - name: Security disclosure
+    url: https://github.com/myhuemungusD/skatehubba-avatarcloset/blob/main/SECURITY.md
+    about: Do NOT open a public issue for trade-engine, RNG, or RLS exploits. Use the disclosure path instead.
