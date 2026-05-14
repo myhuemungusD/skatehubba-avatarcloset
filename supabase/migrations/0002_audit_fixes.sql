@@ -94,6 +94,12 @@ begin
   if old.opened_at          is distinct from new.opened_at          then raise exception 'box_opens.opened_at is immutable'; end if;
 
   if old.server_seed is null then
+    -- Invariant: pre-reveal rows must have revealed_at IS NULL. If somehow
+    -- they don't, refuse the UPDATE rather than silently propagate a corrupt
+    -- state. Defense-in-depth on the load-bearing audit row.
+    if old.revealed_at is not null then
+      raise exception 'box_opens: invariant violation — revealed_at set while server_seed is null (row %)', old.id;
+    end if;
     -- pre-reveal → reveal transition: server_seed and revealed_at move from
     -- NULL to a value together. Neither half-reveal direction is legal.
     if new.server_seed is null and new.revealed_at is not null then
