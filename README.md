@@ -6,9 +6,14 @@ Forward-integrates into the broader SkateHubba product.
 
 ## Status
 
-Phase 1.5 — Auth + identity wiring on top of the Phase 1 scaffold. Next.js
-web app with Supabase email-password auth, Colyseus realtime server, shared
-schema package, CI typecheck + lint + unit tests + charter grep guards.
+Phase 1.6 — auth UX polish + tech-debt sweep on top of the Phase 1.5
+identity wiring. Password reset flow, `/account` with 30-day username-change
+cooldown, sign-in `?next=` open-redirect allowlist, 28 of 30 Dependabot
+advisories closed (all critical/high), constraint hardening migration
+(bytea CHECKs, citext username, closet-reaction per-UTC-day floor),
+`handle_new_user` lowercase defense-in-depth, codified Auditor-depth
+Reviewer + two-reviewer rule on money surface + `docs/backlog.md`
+single-source-of-truth process.
 
 Working branch: `claude/skater-closet-game-ZATwX`.
 

@@ -174,7 +174,9 @@ Tables (Phase 0–2 scope):
 - `trade_ledger` — append-only trade history (every trade attempt logged)
 - `trade_ledger_pending_items` — internal projection enforcing single-pending-trade-per-inventory invariant; written only by trigger, never by application code.
 - `closets` — closet layout per user
-- `loot_boxes` — box definitions + drop tables
+- `closet_reactions` — "fire" / "respect" / "want" reactions on closets; DB-level one-per-(visitor, target, kind)-per-UTC-day uniqueness floor enforced by `0005_constraint_hardening.sql` (the per-user 50 HC/day reward cap is a separate invariant enforced by the future reaction Edge Function).
+- `loot_boxes` — box definitions
+- `loot_box_drop_tables` — public-readable drop rates per box × rarity; source of truth for the `/odds` page (Phase 2). CI parity gate `ODDS-PARITY-CI` reads these rows.
 - `box_opens` — every box opening, with commit-reveal transcript
 - `box_open_commits` — pre-input commit row, referenced by `box_opens.commit_id`.
 - `audit_log` — generic append-only system events
