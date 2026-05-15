@@ -47,8 +47,26 @@ For schema / trade / money-touching PRs, fill all four. For Chief-Engineer-direc
 
 <!-- Anything a reviewer should look at twice. Trade-engine surface, RNG paths, RLS changes, migrations that can't be rolled back. -->
 
+## Migration checklist (if this PR adds or modifies a Supabase migration)
+
+- [ ] `packages/schema/src/db.ts` row mirror added/updated for any new or changed table
+- [ ] `packages/schema/src/enums.ts` updated for any new Postgres enum
+- [ ] `packages/schema/src/__tests__/enums.test.ts` updated to read the new migration file if enums changed
+- [ ] All new trigger functions have `set search_path = public`
+- [ ] All new tables have `ENABLE ROW LEVEL SECURITY`
+- [ ] CI `charter-presence` job asserts the new migration file exists
+- [ ] `docs/architecture.md` updated if the change affects a documented flow (trade / loot box / closet visit / auth)
+
+## No carry-forwards
+
+By opening this PR I confirm that **nothing identified during this PR's review has been deferred to a later phase, follow-up list, or comment**. Every defect, nit, drift, stale comment, missing test, missing doc, or hardening gap surfaced by the agent chain (Architect, Implementer, Reviewer, second Reviewer where required, or external automated reviewers like Codex / CodeQL) is fixed in this PR.
+
+The only deferrals that are acceptable are entries on `docs/backlog.md` that are blocked on an external resource or upstream code that doesn't exist yet, and any such entry was already on `docs/backlog.md` before this PR's review started — not added during it.
+
 ---
 
 By opening this PR I confirm:
 - All Reviewer findings have been addressed (no "PASS WITH NOTES" merges per `CLAUDE.md`)
 - No commit in this PR ships with a known defect
+- Money-shaped surface changes ran TWO Reviewer agents in parallel per `CLAUDE.md` "Two-reviewer rule"
+- All findings from agent chain AND external reviewers (Codex / CodeQL / Dependabot) are addressed in this PR, not deferred

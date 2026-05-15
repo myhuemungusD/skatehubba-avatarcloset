@@ -20,6 +20,38 @@ This project ships to a public, money-shaped surface. The bar is production-leve
 2. **Defense-in-depth is welcome on load-bearing surface.** The default project style rule ("don't validate scenarios that can't happen") applies to ordinary application code. It does NOT apply to triggers, RLS policies, or audit-trail invariants on `inventory`, `trade_ledger`, `wallets`, `coin_ledger`, `item_editions`, `box_opens`, or `box_open_commits`. On those surfaces, self-documenting invariant assertions are encouraged — they catch the "should be impossible but somehow isn't" class of bug, which is exactly the class that produces dupe exploits.
 3. **Reviewer findings are re-Reviewed when patched.** If the Reviewer identifies issues and the chief patches them, the Reviewer runs again on the patched diff. The chief does not self-certify a fix to a Reviewer finding.
 4. **No commit ships with a known defect.** "Phase 2 cleanup" is not a real backlog entry. If we see it, we fix it. Tech debt that doesn't go into a commit doesn't become tech debt.
+5. **No "we'll come back to it" deferrals.** Anything we identify in a PR that needs correcting gets corrected before merge. The only legitimate deferrals are tasks blocked on an external dependency we genuinely cannot satisfy from the repo (e.g., a third-party API key, a staging environment the owner hasn't provisioned). Those go in [`docs/backlog.md`](docs/backlog.md) with the specific external blocker named. Everything else gets fixed now.
+
+## Reviewer agent depth — Auditor-grade by default
+
+Every Reviewer agent dispatch reads every line of every changed file. There is no "sampling," "spot-checking," or "verifying the design contract was followed." The Reviewer reads the diff in full and, in addition, reads the surrounding files needed to understand each change in context. Specifically the Reviewer must:
+
+1. **Verify the changed surface charter-by-charter and hard-rule-by-hard-rule.** Not just "this PR doesn't touch trades." Actively confirm: no coin leg added; no `retired_at` mutation path opened; no on-chain reference introduced; no client-side write to a money table; no new RLS hole; no append-only bypass.
+2. **Verify every new function has `set search_path` if it's a Postgres function.** Verify every new trigger function pins commit-time columns where appropriate. Verify every new RLS policy or view denies-by-default.
+3. **Run every CI gate locally** (`pnpm install --frozen-lockfile`, `pnpm lint`, `pnpm -r typecheck`, `pnpm -r test --run`, the three charter grep guards). Not "I trust CI" — verify locally.
+4. **Cross-check every doc against every other doc.** When the migration adds a table, the architecture doc mentions it; when a flow changes, every doc that references that flow gets updated; when a comment promises behavior, the code delivers it.
+5. **Run the codebase's broader greps** for known landmines: `Math.random` in security-shaped paths; `getSession()` in server components; `service_role` outside expected paths; `unique_token` exposure in views or function bodies.
+6. **Surface every drift as a finding, even cosmetic ones.** Stale comments are findings. Wrong README status is a finding. Missing postmortems are findings. Per CLAUDE.md quality rule #1, the chief does not downgrade — but the Reviewer also does not pre-emptively downgrade by leaving things out of the report. List everything.
+
+A Reviewer that returns PASS without doing the above is a Reviewer that has failed the project. The Auditor agent prompt template (used end-of-phase) is the operational floor for Reviewer prompts.
+
+## Two-reviewer rule on money-shaped surface
+
+Any PR touching `inventory`, `trade_ledger`, `wallets`, `coin_ledger`, `item_editions`, `box_opens`, `box_open_commits`, `trade_ledger_pending_items`, RLS policies on those tables, or Edge Functions that mutate those tables requires **two independent Reviewer agents** (both Opus 4.7) before merge. They are dispatched in parallel with identical prompts; they do not see each other's reports until both have returned. If either returns FAIL, the PR is FAIL and the chief patches and re-runs both.
+
+This is not "double-check." It is "no single agent's blind spot determines what ships to a money surface." Codex caught 3 P1 findings our internal Reviewer missed. CodeQL caught a `Math.random` our internal Reviewer missed. The deep-dive Auditor caught 8 things our internal Reviewer missed. The lesson: one Reviewer's read is not enough on this surface.
+
+Two Reviewers on money surface. One Reviewer is fine on docs / CI / UI-only PRs.
+
+## Backlog discipline
+
+The single source of truth for known debt is [`docs/backlog.md`](docs/backlog.md). It has one section per status:
+
+- **Blocked on external resource** — the only legitimate deferrals; each entry names the specific blocker (e.g., "needs staging Supabase project").
+- **Carry-forward (waiting for upstream code)** — narrowly scoped: needs an Edge Function that doesn't exist yet, needs a drop table that isn't seeded yet. Each entry names the upstream condition.
+- **Active** — actively being worked. Each entry has an owner.
+
+No other documents track debt. No "Phase X.Y follow-up list" in PR bodies, no scattered TODOs in code, no "we'll come back to this" in commit messages. If it isn't in `backlog.md`, it doesn't get to exist.
 
 ## Agent model
 

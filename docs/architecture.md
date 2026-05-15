@@ -117,6 +117,10 @@
      SHA256(server_seed || client_seed || nonce) % 10_000 == outcome_index ?
 ```
 
+`server_seed`, `server_seed_hash`, and `client_seed` are 32-byte values
+enforced at the DB layer via CHECK constraints (see
+`0005_constraint_hardening.sql`); `server_seed` is nullable until reveal.
+
 ## Serial number uniqueness
 
 Two-belt approach (DB constraint + cryptographic token):
@@ -154,6 +158,7 @@ A Colyseus room **per closet**. Room state schema:
 - Owner offline → snapshot served from Postgres, room runs in read-only "ghost" mode.
 - Async fallback: `GET /api/closets/:username/snapshot.json` for SEO + share previews (CDN-cached).
 - Visitor reads `public_closet_inventory` view (template/edition/serial only, filtered by `closets.is_public`); `unique_token` and acquisition timestamps remain owner-only.
+- Reactions on a closet (`closet_reactions` table) are subject to a DB-level per-UTC-day uniqueness floor: `closet_reactions_one_per_visitor_target_kind_per_day` (added in `0005_constraint_hardening.sql`). This is the *idempotency* invariant — one of each `kind` per `(visitor, target)` per UTC day. The future reaction Edge Function catches `unique_violation` (SQLSTATE 23505) and returns a friendly "you already reacted today" message. This composes with — but is distinct from — the per-user 50 HC/day *reward saturation* cap defined in [`docs/economy.md`](economy.md); the DB enforces the floor, the Edge Function enforces the ceiling.
 
 ## Database schema overview
 
@@ -174,11 +179,19 @@ Tables (Phase 0–2 scope):
 - `box_open_commits` — pre-input commit row, referenced by `box_opens.commit_id`.
 - `audit_log` — generic append-only system events
 
-## Auth flow (Phase 1.5)
+## Auth flow (Phase 1.5 + 1.6)
 
 Email + password only at MVP. Supabase Auth is the system of record; the
 `users` row is provisioned by the `handle_new_user` trigger from
-`auth.users` (see `0002_audit_fixes.sql`).
+`auth.users` (see `0002_audit_fixes.sql`, with defense-in-depth lowercase
+normalization on the username metadata from `0006_handle_new_user_lowercase.sql`).
+
+Surface map: `/auth/sign-up`, `/auth/sign-in`, `/auth/sign-out` (server
+action), `/auth/check-email`, `/auth/callback`, `/auth/forgot-password`,
+`/auth/forgot-password/sent`, `/auth/reset-password`, `/account`,
+`/closet/me`, `/closet/<handle>`. Middleware gates `/closet/me` and
+`/account` for anon viewers (redirecting to `/auth/sign-in?next=<path>`)
+and bounces signed-in viewers off `/auth/sign-in` and `/auth/sign-up`.
 
 ```
  ┌────────────┐  POST /auth/sign-up    ┌──────────────────┐
@@ -224,20 +237,97 @@ Email + password only at MVP. Supabase Auth is the system of record; the
 ```
 
 Sign-in is the same shape minus the email confirm step: server action calls
-`signInWithPassword`, redirect to `/closet/me`. Sign-out is a single server
-action wired to a small client `<UserMenu>` form. `middleware.ts` refreshes
-the session on every request, gates `/closet/me` for anon viewers, and
-redirects signed-in viewers away from `/auth/sign-in` and `/auth/sign-up`.
+`signInWithPassword`. The action honors a `?next=<path>` query param via a
+hard-coded allowlist (`{/closet/me, /account}`) — anything else falls back
+to `/closet/me`. This is what makes the middleware redirect chain work
+end-to-end: anon viewer hits `/account`, middleware sends them to
+`/auth/sign-in?next=/account`, they sign in, the action's `next` resolver
+sends them back to `/account` (not `/closet/me`). The allowlist is hard-
+coded as a `Set<string>` of literal strings — no regex, no protocol-relative
+URLs, no `javascript:`. Sign-out is a single server action wired to a small
+client `<UserMenu>` form. `middleware.ts` refreshes the session on every
+request, gates `/closet/me` and `/account` for anon viewers, redirects
+signed-in viewers away from `/auth/sign-in` and `/auth/sign-up`, and
+exempts `/auth/reset-password` from the signed-in-bounce so a user mid-
+reset can land on the page with a valid session.
 
 Server components only ever call `supabase.auth.getUser()`, never
 `getSession()` — only the former verifies the JWT against `auth.users`.
 
-Username case: the sign-up form normalizes user input to lowercase before
-submit; the DB regex still accepts mixed case (`^[a-zA-Z0-9_]{3,24}$`) so
-existing rows from earlier seed data validate. On collision,
-`handle_new_user` retries once with a numeric suffix before raising; the UI
-just renders `@<actualHandle>` without an explanation. (If real users hit
-this surface, Phase 1.6 adds a banner.)
+### Password reset flow (Phase 1.6)
+
+```
+ ┌────────────┐  POST /auth/forgot-password    ┌──────────────────┐
+ │  Browser   │ ─────────────────────────────▶ │ Server Action    │
+ │            │           email                │ forgotPasswordAction
+ └────────────┘                                └────────┬─────────┘
+        ▲                                               │
+        │ redirect /auth/forgot-password/sent           │ resetPasswordForEmail
+        │  (silent on unknown email — no enumeration)   │  redirectTo =
+        │                                               │  /auth/callback
+        │                                               │   ?next=/auth/reset-password
+        │                                               ▼
+        │                                      ┌──────────────────┐
+        │                                      │ Supabase Auth    │
+        │                                      │  emails the user │
+        │                                      └────────┬─────────┘
+        │                                               │ user clicks link
+        ▼                                               ▼
+ ┌────────────┐                              ┌──────────────────┐
+ │ /auth/     │                              │ /auth/callback   │
+ │ reset-     │ ◀──────────────────────────  │  exchangeCode    │
+ │ password   │  redirect (next allowlist)   │  ForSession      │
+ └─────┬──────┘                              └──────────────────┘
+       │ POST  resetPasswordAction
+       ▼
+ ┌────────────┐
+ │ supabase   │  updateUser({password})
+ │ .auth      │  redirect /closet/me
+ └────────────┘
+```
+
+`/auth/callback` honors a hard-coded `NEXT_ALLOWLIST = {/closet/me,
+/auth/reset-password}`. Anything else falls back to `/closet/me`. This is
+the only open-redirect surface in the auth flow, and the allowlist guards
+it. The `/auth/reset-password` server component refuses to render without
+an authenticated session — no session means the email link expired or was
+already used, and the page redirects to `/auth/forgot-password?error=link_expired`.
+
+### Username change + 30-day cooldown (Phase 1.6)
+
+Settings live at `/account`. One section: "Username." Anon viewers are
+redirected to sign-in (see the middleware notes above).
+
+`users.username_changed_at` (nullable `timestamptz`, added in
+`0005_constraint_hardening.sql`) tracks the most recent rename. The
+`cooldownStatus()` pure helper in `lib/auth/server.ts` accepts that value
+and returns `{ locked, nextEligibleAt }`. First change is free (NULL).
+Subsequent changes are gated by `now() - username_changed_at > 30 days`.
+
+The `changeUsernameAction` server action enforces this against a freshly-
+read row (UI state is advisory; server is authoritative). The action also:
+- Lowercases input before zod validation.
+- Pre-flight collision check against `users.username` (anon-readable per
+  the existing RLS `users_public_read` policy).
+- UPDATEs `username` + `username_changed_at` in a single statement.
+- Maps 23505 (UNIQUE violation race) to the same friendly "taken" error
+  as the pre-flight collision case.
+
+Username updates flow through the user-session Supabase client under
+`users_self_update` RLS (`auth.uid() = id`), not through an Edge Function.
+This is in-charter — `users` is identity, not money. The old `@handle`
+becomes immediately claimable by another user (charter pillar: identity
+is fluid, not collectible).
+
+Username case: `users.username` is `citext` with a lowercase-only regex
+CHECK (`^[a-z0-9_]{3,24}$`) and a belt-and-suspenders
+`username::text = lower(username::text)` CHECK (see
+`0005_constraint_hardening.sql`). The sign-up form normalizes user input
+to lowercase before submit; the DB rejects anything that isn't already
+lowercase, and citext makes uniqueness casefold-aware so `Foo` and `foo`
+collide. On collision, `handle_new_user` retries once with a numeric
+suffix before raising; the UI just renders `@<actualHandle>` without an
+explanation.
 
 ## What we skip at MVP vs Phase 2
 

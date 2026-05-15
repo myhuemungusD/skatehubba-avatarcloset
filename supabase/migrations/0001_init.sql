@@ -410,7 +410,12 @@ create policy users_self_read on users
   for select using (auth.uid() = id);
 create policy users_public_read on users
   for select using (true);  -- public profile is intentional
--- updates: only your own row, only safe fields (handled by service Edge Function)
+-- updates: only your own row. This policy is intentionally open at the
+-- column level: identity-shape columns (username, display_name,
+-- avatar_config) are user-mutable from server actions, and the trade
+-- engine never touches the users table. Money-shaped writes (wallets,
+-- inventory, etc.) live on other tables behind service-role Edge
+-- Functions; do NOT widen this policy to those.
 create policy users_self_update on users
   for update using (auth.uid() = id) with check (auth.uid() = id);
 

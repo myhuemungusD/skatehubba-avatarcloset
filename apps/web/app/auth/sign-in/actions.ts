@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation';
 import { createSupabaseServerClient } from '../../../lib/supabase/server';
 import { signInInput } from '../../../lib/auth/schemas';
+import { resolveSignInNext } from './next';
 
 export interface SignInActionState {
   error?: {
@@ -16,6 +17,7 @@ export async function signInAction(
   formData: FormData,
 ): Promise<SignInActionState> {
   const raw = Object.fromEntries(formData.entries());
+  const next = typeof raw.next === 'string' ? raw.next : undefined;
   const parsed = signInInput.safeParse(raw);
   if (!parsed.success) {
     const flat = parsed.error.flatten();
@@ -35,5 +37,5 @@ export async function signInAction(
     };
   }
 
-  redirect('/closet/me');
+  redirect(resolveSignInNext(next));
 }

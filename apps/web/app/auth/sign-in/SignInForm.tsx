@@ -1,13 +1,15 @@
 'use client';
 
+import Link from 'next/link';
 import { useActionState } from 'react';
 import { signInAction, type SignInActionState } from './actions';
 
 interface SignInFormProps {
   initialError?: string;
+  next: string;
 }
 
-export default function SignInForm({ initialError }: SignInFormProps) {
+export default function SignInForm({ initialError, next }: SignInFormProps) {
   const initialState: SignInActionState = initialError
     ? { error: { formErrors: [initialError], fieldErrors: {} } }
     : {};
@@ -21,6 +23,7 @@ export default function SignInForm({ initialError }: SignInFormProps) {
 
   return (
     <form action={formAction} className="flex flex-col gap-3">
+      <input type="hidden" name="next" value={next} />
       <label className="flex flex-col gap-1 text-sm">
         Email
         <input
@@ -47,6 +50,12 @@ export default function SignInForm({ initialError }: SignInFormProps) {
         {fieldErrors.password?.length ? (
           <span className="text-xs text-red-600">{fieldErrors.password[0]}</span>
         ) : null}
+        <Link
+          href="/auth/forgot-password"
+          className="self-start text-xs underline underline-offset-2 opacity-80 hover:opacity-100"
+        >
+          Forgot password?
+        </Link>
       </label>
 
       {formErrors.length ? (

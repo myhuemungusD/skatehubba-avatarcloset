@@ -18,6 +18,10 @@ export default [
       '**/playwright-report/**',
       '**/test-results/**',
       '**/*.tsbuildinfo',
+      // Next.js auto-generates this with a triple-slash reference for typed
+      // routes which trips @typescript-eslint/triple-slash-reference. The
+      // file is regenerated on every build; editing it is fruitless.
+      '**/next-env.d.ts',
     ],
   },
   js.configs.recommended,
